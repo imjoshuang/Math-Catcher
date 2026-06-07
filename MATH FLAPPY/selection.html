@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Math Catcher - Select Operation</title>
+    <link rel="icon" type="image/png" href="assets/basket.png">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            line-height: 1;
+            font-family: Arial, sans-serif;
+            background-color: #040218;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: url('assets/oceanbgd.jpg') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .selection-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(20px, 4vh, 50px);
+        }
+
+        .selection-title {
+            font-size: clamp(36px, 5vw, 72px);
+            font-weight: bold;
+            font-family: "ballon small caps extra bold", Arial, sans-serif;
+            color: #ffffff;
+            text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        .buttons-container {
+            display: flex;
+            flex-direction: row;
+            gap: clamp(16px, 2.5vw, 40px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .selection-button {
+            width: clamp(240px, 30vw, 440px);
+            height: clamp(90px, 12vw, 165px);
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+        }
+
+        .selection-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            display: block;
+        }
+
+        .selection-button:hover {
+            transform: scale(1.05);
+        }
+
+        .selection-button:active {
+            transform: scale(0.95);
+        }
+
+        .back-button {
+            position: absolute;
+            top: clamp(10px, 2.5vh, 35px);
+            left: clamp(10px, 2vw, 30px);
+            z-index: 100;
+            width: clamp(80px, 10vw, 140px);
+            height: clamp(80px, 10vw, 140px);
+            background: url('assets/backbutton.png') center/contain no-repeat;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .back-button:hover {
+            transform: scale(1.15);
+        }
+
+        .back-button:active {
+            transform: scale(0.9);
+        }
+
+        .selection-button.addition,
+        .selection-button.subtraction,
+        .selection-button.multiplication {
+            background: transparent;
+        }
+
+        ol, ul {
+            list-style: none;
+        }
+
+        .bubble-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 32% 28%,
+                rgba(255,255,255,0.85) 0%,
+                rgba(160,230,255,0.45) 40%,
+                rgba(80,180,255,0.2) 100%);
+            border: 2px solid rgba(255,255,255,0.6);
+            animation: bubble-rise linear forwards;
+        }
+
+        @keyframes bubble-rise {
+            0%   { transform: translateY(0) scale(1);   opacity: 0.9; }
+            80%  { opacity: 0.7; }
+            100% { transform: translateY(-110vh) scale(1.15); opacity: 0; }
+        }
+
+        img, video {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        html, body {
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #rotate-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #040218;
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: clamp(16px, 4vw, 28px);
+            text-align: center;
+            gap: 24px;
+        }
+
+        #rotate-overlay svg {
+            width: clamp(60px, 12vw, 100px);
+            height: clamp(60px, 12vw, 100px);
+            animation: rotate-hint 1.8s ease-in-out infinite;
+        }
+
+        @keyframes rotate-hint {
+            0%   { transform: rotate(0deg); }
+            40%  { transform: rotate(90deg); }
+            60%  { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @media (orientation: portrait) {
+            #rotate-overlay { display: flex; }
+        }
+    </style>
+</head>
+<body>
+    <div id="rotate-overlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3ad8ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2"/>
+            <path d="M12 18h.01"/>
+        </svg>
+        <p>Please rotate your device<br>to landscape mode</p>
+    </div>
+    <div id="game-container">
+        <button class="back-button" id="backBtn" aria-label="Back"></button>
+        <div class="selection-container">
+            <h1 class="selection-title">Select Operation</h1>
+            <div class="buttons-container">
+                <button class="selection-button addition" id="additionBtn" aria-label="Addition">
+                    <img src="assets/add.png" alt="Addition">
+                </button>
+                <button class="selection-button subtraction" id="subtractionBtn" aria-label="Subtraction">
+                    <img src="assets/subtract.png" alt="Subtraction">
+                </button>
+                <button class="selection-button multiplication" id="multiplicationBtn" aria-label="Multiplication">
+                    <img src="assets/multi.png" alt="Multiplication">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bgm = null;
+        const clickAudio   = new Audio('sounds/buttonclick.wav');
+        const bubblesAudio = new Audio('sounds/bubbles.mp3');
+        bubblesAudio.volume = 1.0;
+        const playClick   = () => { clickAudio.currentTime = 0; clickAudio.play().catch(() => {}); };
+        const playBubbles = () => { bubblesAudio.currentTime = 0; bubblesAudio.play().catch(() => {}); };
+        const soundMuted = sessionStorage.getItem('soundMuted') === 'true';
+        const startLoadingAudio = () => {
+            if (!bgm && !soundMuted) {
+                bgm = new Audio('sounds/audiocoffee-kid-131153.mp3');
+                bgm.loop = true;
+                bgm.volume = 0.25;
+                
+                const savedTime = sessionStorage.getItem('musicTime');
+                if (savedTime) {
+                    bgm.currentTime = parseFloat(savedTime);
+                    sessionStorage.removeItem('musicTime');
+                }
+                
+                bgm.play().catch(() => {});
+            }
+        };
+
+        window.addEventListener('load', startLoadingAudio);
+        document.addEventListener('click', startLoadingAudio, { once: true });
+
+        const addHoverEffect = (button) => {
+            button.addEventListener('pointerover', () => {
+                button.style.transition = 'transform 0.12s ease';
+                button.style.transform = 'scale(1.12)';
+            });
+            button.addEventListener('pointerout', () => {
+                button.style.transition = 'transform 0.12s ease';
+                button.style.transform = 'scale(1)';
+            });
+        };
+
+        const fadeOverlay = document.createElement('div');
+        fadeOverlay.style.cssText = 'position:fixed;inset:0;background:#000;opacity:0;transition:opacity 0.55s ease;pointer-events:none;z-index:1000;';
+        document.body.appendChild(fadeOverlay);
+
+        const spawnBubbles = () => {
+            const overlay = document.createElement('div');
+            overlay.className = 'bubble-overlay';
+            document.body.appendChild(overlay);
+            const count = 60;
+            for (let i = 0; i < count; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble';
+                const size     = Math.random() * 80 + 10;
+                const duration = Math.random() * 1.0 + 0.7;
+                const delay    = Math.random() * 0.8;
+                b.style.width  = size + 'px';
+                b.style.height = size + 'px';
+                b.style.left   = (Math.random() * 108 - 4) + 'vw';
+                b.style.bottom = (-size) + 'px';
+                b.style.animationDuration = duration + 's';
+                b.style.animationDelay    = delay + 's';
+                overlay.appendChild(b);
+            }
+        };
+
+        const navigateToGame = (operation) => {
+            if (bgm) sessionStorage.setItem('musicTime', bgm.currentTime.toString());
+            sessionStorage.setItem('operation', operation);
+
+            spawnBubbles();
+            bubblesAudio.currentTime = 0;
+            bubblesAudio.play().catch(() => {});
+
+            const doNavigate = () => {
+                fadeOverlay.style.opacity = '1';
+                setTimeout(() => { window.location.href = 'index.html'; }, 580);
+            };
+
+            bubblesAudio.addEventListener('ended', doNavigate, { once: true });
+            // Fallback if audio fails
+            setTimeout(() => {
+                bubblesAudio.removeEventListener('ended', doNavigate);
+                doNavigate();
+            }, 3500);
+        };
+
+        const navigateBack = () => {
+            playClick();
+            if (bgm) {
+                sessionStorage.setItem('musicTime', bgm.currentTime.toString());
+            }
+            
+            const container = document.querySelector('#game-container');
+            container.style.transition = 'opacity 0.3s ease';
+            container.style.opacity = '0';
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 300);
+        };
+
+        const backBtn = document.getElementById('backBtn');
+        if (backBtn) backBtn.addEventListener('click', navigateBack);
+
+        const additionBtn = document.getElementById('additionBtn');
+        const subtractionBtn = document.getElementById('subtractionBtn');
+        const multiplicationBtn = document.getElementById('multiplicationBtn');
+
+        if (additionBtn) {
+            addHoverEffect(additionBtn);
+            additionBtn.addEventListener('click', () => navigateToGame('addition'));
+        }
+
+        if (subtractionBtn) {
+            addHoverEffect(subtractionBtn);
+            subtractionBtn.addEventListener('click', () => navigateToGame('subtraction'));
+        }
+
+        if (multiplicationBtn) {
+            addHoverEffect(multiplicationBtn);
+            multiplicationBtn.addEventListener('click', () => navigateToGame('multiplication'));
+        }
+    </script>
+    <script>
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+        }
+    </script>
+</body>
+</html>
