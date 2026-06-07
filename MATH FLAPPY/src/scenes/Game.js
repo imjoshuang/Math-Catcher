@@ -629,10 +629,15 @@ export class Game extends Phaser.Scene {
         this.bgm?.stop();
         this.levelPassedSfx?.play();
         
-        // Save operation completion
-        const completedOps = JSON.parse(localStorage.getItem('completedOperations') || '{}');
-        completedOps[this.operation] = true;
-        localStorage.setItem('completedOperations', JSON.stringify(completedOps));
+        // Save operation completion immediately and verify
+        try {
+            const completedOps = JSON.parse(localStorage.getItem('completedOperations') || '{}');
+            completedOps[this.operation] = true;
+            localStorage.setItem('completedOperations', JSON.stringify(completedOps));
+            console.log('✓ Progress saved to localStorage:', completedOps);
+        } catch (e) {
+            console.error('✗ Failed to save progress:', e);
+        }
         
         this._showCompletePanel();
     }
