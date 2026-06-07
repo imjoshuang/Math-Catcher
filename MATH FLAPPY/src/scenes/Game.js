@@ -628,6 +628,12 @@ export class Game extends Phaser.Scene {
         this.timerEvent?.remove();
         this.bgm?.stop();
         this.levelPassedSfx?.play();
+        
+        // Save operation completion
+        const completedOps = JSON.parse(localStorage.getItem('completedOperations') || '{}');
+        completedOps[this.operation] = true;
+        localStorage.setItem('completedOperations', JSON.stringify(completedOps));
+        
         this._showCompletePanel();
     }
 

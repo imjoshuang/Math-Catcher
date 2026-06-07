@@ -196,6 +196,38 @@
         @media (orientation: portrait) {
             #rotate-overlay { display: flex; }
         }
+
+        .selection-button.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(60%);
+        }
+
+        .selection-button.locked:hover {
+            transform: scale(1) !important;
+        }
+
+        .lock-indicator {
+            position: absolute;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: clamp(24px, 4vw, 48px);
+            color: #ffeb3b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .selection-button.locked .lock-indicator {
+            display: flex;
+        }
+
+        .selection-button {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -213,12 +245,15 @@
             <div class="buttons-container">
                 <button class="selection-button addition" id="additionBtn" aria-label="Addition">
                     <img src="assets/add.png" alt="Addition">
+                    <div class="lock-indicator">🔒</div>
                 </button>
                 <button class="selection-button subtraction" id="subtractionBtn" aria-label="Subtraction">
                     <img src="assets/subtract.png" alt="Subtraction">
+                    <div class="lock-indicator">🔒</div>
                 </button>
                 <button class="selection-button multiplication" id="multiplicationBtn" aria-label="Multiplication">
                     <img src="assets/multi.png" alt="Multiplication">
+                    <div class="lock-indicator">🔒</div>
                 </button>
             </div>
         </div>
@@ -232,6 +267,47 @@
         const playClick   = () => { clickAudio.currentTime = 0; clickAudio.play().catch(() => {}); };
         const playBubbles = () => { bubblesAudio.currentTime = 0; bubblesAudio.play().catch(() => {}); };
         const soundMuted = sessionStorage.getItem('soundMuted') === 'true';
+        
+        // Check progression system
+        const checkProgression = () => {
+            const completedOps = JSON.parse(localStorage.getItem('completedOperations') || '{}');
+            const subtractionBtn = document.getElementById('subtractionBtn');
+            const multiplicationBtn = document.getElementById('multiplicationBtn');
+            
+            // Subtraction is locked until addition is complete
+            if (!completedOps.addition) {
+                if (subtractionBtn) {
+                    subtractionBtn.classList.add('locked');
+                    subtractionBtn.disabled = true;
+                }
+            } else {
+                if (subtractionBtn) {
+                    subtractionBtn.classList.remove('locked');
+                    subtractionBtn.disabled = false;
+                }
+            }
+            
+            // Multiplication is locked until subtraction is complete
+            if (!completedOps.subtraction) {
+                if (multiplicationBtn) {
+                    multiplicationBtn.classList.add('locked');
+                    multiplicationBtn.disabled = true;
+                }
+            } else {
+                if (multiplicationBtn) {
+                    multiplicationBtn.classList.remove('locked');
+                    multiplicationBtn.disabled = false;
+                }
+            }
+        };
+        
+        // Run check on page load
+        window.addEventListener('load', checkProgression);
+        // Also run check immediately if DOM is ready
+        if (document.readyState === 'interactive' || document.readyState === 'complete') {
+            checkProgression();
+        }
+        
         const startLoadingAudio = () => {
             if (!bgm && !soundMuted) {
                 bgm = new Audio('sounds/audiocoffee-kid-131153.mp3');
@@ -332,17 +408,23 @@
 
         if (additionBtn) {
             addHoverEffect(additionBtn);
-            additionBtn.addEventListener('click', () => navigateToGame('addition'));
+            additionBtn.addEventListener('click', () => {
+                if (!additionBtn.disabled) navigateToGame('addition');
+            });
         }
 
         if (subtractionBtn) {
             addHoverEffect(subtractionBtn);
-            subtractionBtn.addEventListener('click', () => navigateToGame('subtraction'));
+            subtractionBtn.addEventListener('click', () => {
+                if (!subtractionBtn.disabled) navigateToGame('subtraction');
+            });
         }
 
         if (multiplicationBtn) {
             addHoverEffect(multiplicationBtn);
-            multiplicationBtn.addEventListener('click', () => navigateToGame('multiplication'));
+            multiplicationBtn.addEventListener('click', () => {
+                if (!multiplicationBtn.disabled) navigateToGame('multiplication');
+            });
         }
     </script>
     <script>
