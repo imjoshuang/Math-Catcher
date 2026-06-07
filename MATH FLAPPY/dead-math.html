@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dead Math — Zombie Shooter</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #gameWrapper {
+    position: relative;
+    width: 800px;
+    height: 560px;
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+
+  canvas {
+    display: block;
+    border: 3px solid #3a1a1a;
+    box-shadow: 0 0 40px #ff000033, 0 0 80px #00000099;
+  }
+
+  #ui {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hud-block {
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #4a1a1a;
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: #ff6b6b;
+    font-family: 'Bangers', cursive;
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .hud-block span { color: #fff; font-size: 22px; }
+
+  #lives { display: flex; gap: 6px; align-items: center; }
+  .heart { font-size: 22px; transition: transform 0.2s; }
+  .heart.lost { opacity: 0.2; }
+
+  #mathPanel {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.88);
+    border-top: 2px solid #6b0000;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 10;
+  }
+
+  #question {
+    font-family: 'Bangers', cursive;
+    color: #ffcc00;
+    font-size: 28px;
+    letter-spacing: 2px;
+    flex: 1;
+    text-shadow: 0 0 10px #ff660066;
+  }
+
+  #answerForm {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .choice-btn {
+    font-family: 'Bangers', cursive;
+    font-size: 22px;
+    letter-spacing: 1px;
+    padding: 8px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid #6b0000;
+    background: #1a0808;
+    color: #ff9999;
+    transition: all 0.12s;
+  }
+
+  .choice-btn:hover { background: #6b0000; color: #fff; transform: scale(1.08); }
+  .choice-btn.correct { background: #1a6b1a; border-color: #4cff4c; color: #afffaf; }
+  .choice-btn.wrong { background: #6b1a1a; border-color: #ff4444; color: #ffaaaa; }
+
+  #roundBanner {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    gap: 20px;
+  }
+
+  #roundBanner h1 {
+    font-family: 'Creepster', cursive;
+    font-size: 72px;
+    color: #ff3333;
+    text-shadow: 0 0 30px #ff0000;
+    animation: flicker 1s infinite alternate;
+  }
+
+  #roundBanner h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 36px;
+    color: #ffcc00;
+    letter-spacing: 3px;
+  }
+
+  #roundBanner p {
+    color: #aaa;
+    font-size: 16px;
+  }
+
+  .big-btn {
+    font-family: 'Bangers', cursive;
+    font-size: 28px;
+    letter-spacing: 2px;
+    padding: 14px 40px;
+    background: #6b0000;
+    border: 3px solid #ff3333;
+    color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-shadow: 0 2px 4px #00000099;
+  }
+
+  .big-btn:hover { background: #ff3333; transform: scale(1.06); }
+
+  @keyframes flicker {
+    0% { opacity: 1; text-shadow: 0 0 30px #ff0000; }
+    100% { opacity: 0.85; text-shadow: 0 0 60px #ff0000, 0 0 10px #ff6666; }
+  }
+
+  #timer-bar-wrap {
+    width: 100%;
+    height: 6px;
+    background: #2a0808;
+    border-radius: 3px;
+    overflow: hidden;
+    flex: 1;
+    max-width: 140px;
+  }
+
+  #timer-bar {
+    height: 100%;
+    background: #ff4444;
+    transition: width 0.1s linear;
+    border-radius: 3px;
+  }
+
+  #floatMsg {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    transform: translateX(-50%);
+    font-family: 'Bangers', cursive;
+    font-size: 38px;
+    color: #fff;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 20;
+    text-shadow: 0 0 20px #ff0;
+    transition: opacity 0.1s;
+  }
+
+  #comboMsg {
+    position: absolute;
+    right: 16px;
+    top: 55px;
+    font-family: 'Bangers', cursive;
+    font-size: 22px;
+    color: #ffcc00;
+    pointer-events: none;
+    z-index: 20;
+    text-shadow: 0 0 10px #ff660077;
+  }
+</style>
+</head>
+<body>
+
+<div id="gameWrapper">
+  <canvas id="canvas" width="800" height="560"></canvas>
+
+  <div id="ui">
+    <div class="hud-block">ROUND <span id="hud-round">1</span></div>
+    <div id="lives">
+      <span class="heart" id="h1">🧟</span>
+      <span class="heart" id="h2">🧟</span>
+      <span class="heart" id="h3">🧟</span>
+    </div>
+    <div class="hud-block">SCORE <span id="hud-score">0</span></div>
+  </div>
+
+  <div id="mathPanel">
+    <div id="question">Survive the horde!</div>
+    <div id="timer-bar-wrap"><div id="timer-bar" style="width:100%"></div></div>
+    <div id="answerForm"></div>
+  </div>
+
+  <div id="floatMsg">+10</div>
+  <div id="comboMsg"></div>
+
+  <div id="roundBanner">
+    <h1>DEAD MATH</h1>
+    <h2>ZOMBIE SHOOTER</h2>
+    <p>Shoot the right answer before they reach you!</p>
+    <button class="big-btn" onclick="startRound()">▶ START GAME</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 560;
+
+let state = {
+  round: 1,
+  score: 0,
+  lives: 3,
+  phase: 'menu',
+  zombies: [],
+  bullets: [],
+  particles: [],
+  player: { x: 400, y: 410, w: 44, h: 56, frame: 0, frameTimer: 0 },
+  question: null,
+  correctAnswer: null,
+  answerLocked: false,
+  combo: 0,
+  questionTimer: 0,
+  questionDuration: 12,
+  roundKills: 0,
+  roundTarget: 8,
+  bgStars: [],
+  muzzleFlash: 0,
+  shake: 0,
+};
+
+function rand(a, b) { return Math.random() * (b - a) + a; }
+function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+
+for (let i = 0; i < 60; i++) {
+  state.bgStars.push({ x: rand(0, W), y: rand(0, H * 0.6), r: rand(0.5, 2), blink: rand(0, Math.PI * 2) });
+}
+
+function generateQuestion(round) {
+  const difficulty = Math.min(round, 5);
+  let a, b, op, answer;
+  const ops = difficulty <= 2 ? ['+', '-'] : ['+', '-', '×'];
+  op = ops[randInt(0, ops.length - 1)];
+  if (op === '+') {
+    a = randInt(1, 10 * difficulty); b = randInt(1, 10 * difficulty);
+    answer = a + b;
+  } else if (op === '-') {
+    a = randInt(5, 10 + 10 * difficulty); b = randInt(1, a);
+    answer = a - b;
+  } else {
+    a = randInt(2, 4 + difficulty); b = randInt(2, 4 + difficulty);
+    answer = a * b;
+  }
+  const choices = new Set([answer]);
+  while (choices.size < 4) {
+    const w = answer + randInt(-5, 5);
+    if (w !== answer && w >= 0) choices.add(w);
+  }
+  const arr = [...choices].sort(() => Math.random() - 0.5);
+  return { text: `${a} ${op} ${b} = ?`, answer, choices: arr };
+}
+
+function spawnZombie(round) {
+  const q = state.question;
+  if (!q) return;
+  const choiceIdx = randInt(0, q.choices.length - 1);
+  const val = q.choices[choiceIdx];
+  const isCorrect = val === q.answer;
+  const speed = 0.4 + round * 0.12;
+  state.zombies.push({
+    x: rand(60, W - 60),
+    y: -80,
+    w: 48, h: 64,
+    speed: isCorrect ? speed * 1.2 : speed * rand(0.7, 1.1),
+    hp: 1,
+    label: String(val),
+    isCorrect,
+    frame: 0,
+    frameTimer: 0,
+    color: isCorrect ? '#55ff55' : '#ff5555',
+    wobble: rand(0, Math.PI * 2),
+    dead: false,
+    deathTimer: 0,
+  });
+}
+
+function spawnParticles(x, y, color, count = 10) {
+  for (let i = 0; i < count; i++) {
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(2, 7);
+    state.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: rand(0.03, 0.07),
+      r: rand(2, 5),
+      color
+    });
+  }
+}
+
+function shoot(targetX, targetY) {
+  const p = state.player;
+  state.bullets.push({
+    x: p.x, y: p.y - 20,
+    tx: targetX, ty: targetY,
+    speed: 14,
+    r: 6,
+    life: 1
+  });
+  state.muzzleFlash = 6;
+}
+
+function showFloat(msg, color = '#ffff00') {
+  const el = document.getElementById('floatMsg');
+  el.textContent = msg;
+  el.style.color = color;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 700);
+}
+
+function setCombo(c) {
+  const el = document.getElementById('comboMsg');
+  el.textContent = c >= 2 ? `COMBO x${c}! 🔥` : '';
+}
+
+function renderQuestion() {
+  if (!state.question) return;
+  document.getElementById('question').textContent = state.question.text;
+  const form = document.getElementById('answerForm');
+  form.innerHTML = '';
+  state.question.choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.onclick = () => playerAnswer(c);
+    form.appendChild(btn);
+  });
+}
+
+function playerAnswer(val) {
+  if (state.answerLocked || state.phase !== 'playing') return;
+  state.answerLocked = true;
+
+  const correct = val === state.question.answer;
+  document.querySelectorAll('.choice-btn').forEach(btn => {
+    if (parseInt(btn.textContent) === state.question.answer) btn.classList.add('correct');
+    else if (parseInt(btn.textContent) === val && !correct) btn.classList.add('wrong');
+  });
+
+  if (correct) {
+    state.combo++;
+    const bonus = state.combo >= 3 ? state.combo * 15 : 10;
+    state.score += bonus;
+    document.getElementById('hud-score').textContent = state.score;
+    showFloat(`+${bonus} CORRECT!`, '#55ff55');
+    setCombo(state.combo);
+    const rightZ = state.zombies.find(z => z.isCorrect && !z.dead);
+    if (rightZ) {
+      shoot(rightZ.x, rightZ.y);
+      spawnParticles(rightZ.x, rightZ.y, '#55ff55', 16);
+      rightZ.dead = true;
+      rightZ.deathTimer = 0.5;
+      state.roundKills++;
+    }
+  } else {
+    state.combo = 0;
+    setCombo(0);
+    loseLife();
+    showFloat('WRONG! -1 ❌', '#ff4444');
+  }
+
+  setTimeout(() => {
+    if (state.phase === 'playing') nextQuestion();
+  }, 900);
+}
+
+function loseLife() {
+  state.lives--;
+  state.shake = 12;
+  const hearts = ['h1','h2','h3'];
+  const idx = state.lives;
+  if (hearts[idx]) document.getElementById(hearts[idx]).classList.add('lost');
+  if (state.lives <= 0) setTimeout(gameOver, 500);
+}
+
+function nextQuestion() {
+  state.zombies = state.zombies.filter(z => !z.dead);
+  state.question = generateQuestion(state.round);
+  state.answerLocked = false;
+  state.questionTimer = state.questionDuration - Math.min(state.round * 0.8, 5);
+  renderQuestion();
+  for (let i = 0; i < state.question.choices.length; i++) spawnZombie(state.round);
+}
+
+function checkRoundEnd() {
+  if (state.roundKills >= state.roundTarget) {
+    state.phase = 'roundEnd';
+    showRoundEnd();
+  }
+}
+
+function showRoundEnd() {
+  const banner = document.getElementById('roundBanner');
+  banner.innerHTML = `
+    <h1>ROUND ${state.round} CLEAR!</h1>
+    <h2>🧠 BRAINS SAVED: ${state.roundKills}</h2>
+    <p style="color:#aaa">Score: ${state.score} | Lives: ${'🧟'.repeat(state.lives)}</p>
+    <button class="big-btn" onclick="nextRound()">ROUND ${state.round + 1} ▶</button>
+  `;
+  banner.style.display = 'flex';
+}
+
+function gameOver() {
+  state.phase = 'dead';
+  const banner = document.getElementById('roundBanner');
+  banner.innerHTML = `
+    <h1 style="color:#ff3333">GAME OVER</h1>
+    <h2>THE HORDE WON... 😵</h2>
+    <p style="color:#aaa;font-size:20px">Final Score: <strong style="color:#ffcc00">${state.score}</strong></p>
+    <button class="big-btn" onclick="resetGame()">PLAY AGAIN</button>
+  `;
+  banner.style.display = 'flex';
+}
+
+function resetGame() {
+  state.round = 1; state.score = 0; state.lives = 3;
+  state.zombies = []; state.bullets = []; state.particles = [];
+  state.combo = 0; state.roundKills = 0; state.roundTarget = 8;
+  document.getElementById('hud-score').textContent = '0';
+  document.getElementById('hud-round').textContent = '1';
+  ['h1','h2','h3'].forEach(id => document.getElementById(id).classList.remove('lost'));
+  setCombo(0);
+  startRound();
+}
+
+function nextRound() {
+  state.round++;
+  state.roundKills = 0;
+  state.roundTarget = 8 + state.round * 2;
+  state.zombies = [];
+  document.getElementById('hud-round').textContent = state.round;
+  document.getElementById('roundBanner').style.display = 'none';
+  state.phase = 'playing';
+  nextQuestion();
+}
+
+function startRound() {
+  document.getElementById('roundBanner').style.display = 'none';
+  state.phase = 'playing';
+  state.question = null;
+  nextQuestion();
+}
+
+let spawnTimer = 0;
+let lastTime = 0;
+
+function drawBackground(t) {
+  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+  grad.addColorStop(0, '#050510');
+  grad.addColorStop(1, '#1a0a0a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  state.bgStars.forEach(s => {
+    const b = 0.5 + 0.5 * Math.sin(s.blink + t * 1.5);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,200,200,${0.3 + 0.5 * b})`;
+    ctx.fill();
+  });
+
+  ctx.fillStyle = '#0d0005';
+  ctx.beginPath();
+  ctx.ellipse(W / 2, H * 0.62, W * 0.7, 30, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const g2 = ctx.createLinearGradient(0, H * 0.58, 0, H);
+  g2.addColorStop(0, '#0a1a0a');
+  g2.addColorStop(1, '#050d05');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, H * 0.58, W, H);
+
+  for (let i = 0; i < 6; i++) {
+    const gx = 60 + i * 130;
+    const gy = H * 0.62 - 20;
+    ctx.fillStyle = '#0f200f';
+    ctx.fillRect(gx - 5, gy - 40, 10, 42);
+    ctx.beginPath();
+    ctx.moveTo(gx, gy - 80);
+    ctx.lineTo(gx - 18, gy - 40);
+    ctx.lineTo(gx + 18, gy - 40);
+    ctx.closePath();
+    ctx.fillStyle = '#162a16';
+    ctx.fill();
+  }
+}
+
+function drawPlayer(t) {
+  const p = state.player;
+  const bob = Math.sin(t * 2) * 2;
+  const px = p.x, py = p.y + bob;
+
+  if (state.muzzleFlash > 0) {
+    ctx.save();
+    ctx.globalAlpha = state.muzzleFlash / 6;
+    ctx.fillStyle = '#ffff88';
+    ctx.beginPath();
+    ctx.arc(px, py - 30, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.fillStyle = '#1a3a1a';
+  ctx.beginPath();
+  ctx.roundRect(px - 16, py - 6, 32, 36, 4);
+  ctx.fill();
+
+  ctx.fillStyle = '#2a5a2a';
+  ctx.beginPath();
+  ctx.roundRect(px - 14, py - 8, 28, 20, 3);
+  ctx.fill();
+
+  ctx.fillStyle = '#c8965a';
+  ctx.beginPath();
+  ctx.arc(px, py - 22, 13, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(px - 2, py - 28, 4, 10);
+
+  ctx.fillStyle = '#ffdd88';
+  ctx.beginPath();
+  ctx.arc(px - 4, py - 24, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px + 4, py - 24, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#0f2a0f';
+  ctx.beginPath();
+  ctx.roundRect(px - 10, py - 38, 20, 12, [5, 5, 0, 0]);
+  ctx.fill();
+
+  ctx.fillStyle = '#3a1a1a';
+  ctx.fillRect(px - 3, py - 50, 6, 22);
+  ctx.restore();
+}
+
+function drawZombie(z, t) {
+  if (z.dead && z.deathTimer <= 0) return;
+  const alpha = z.dead ? z.deathTimer * 2 : 1;
+  const wobble = Math.sin(z.wobble + t * 4) * 3;
+  const scale = z.dead ? 1 + (0.5 - z.deathTimer) : 1;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(z.x + wobble, z.y);
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = '#2a4a1a';
+  ctx.beginPath();
+  ctx.roundRect(-10, -10, 20, 28, 3);
+  ctx.fill();
+
+  ctx.fillStyle = '#6a9a3a';
+  ctx.beginPath();
+  ctx.arc(0, -20, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#8f0000';
+  ctx.beginPath();
+  ctx.arc(-3, -22, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(4, -22, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#4a1a1a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-4, -17);
+  ctx.quadraticCurveTo(0, -13, 4, -17);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.font = 'bold 15px Nunito';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(z.label).width + 12;
+  ctx.beginPath();
+  ctx.roundRect(-tw/2, -44, tw, 20, 4);
+  ctx.fill();
+  ctx.fillStyle = z.isCorrect ? '#88ff88' : '#ff8888';
+  ctx.fillText(z.label, 0, -34);
+
+  ctx.restore();
+}
+
+function drawBullet(b) {
+  ctx.save();
+  ctx.globalAlpha = b.life;
+  ctx.fillStyle = '#ffff44';
+  ctx.shadowColor = '#ffcc00';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawParticle(p) {
+  ctx.save();
+  ctx.globalAlpha = p.life;
+  ctx.fillStyle = p.color;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGround() {
+  ctx.fillStyle = '#1a3a1a';
+  ctx.fillRect(0, H - 100, W, 100);
+  for (let i = 0; i < 20; i++) {
+    ctx.fillStyle = i % 2 === 0 ? '#1d421d' : '#163616';
+    ctx.fillRect(i * 40, H - 100, 40, 4);
+  }
+}
+
+function updateTimerBar(dt) {
+  if (state.phase !== 'playing' || state.answerLocked) return;
+  state.questionTimer -= dt;
+  const pct = Math.max(0, state.questionTimer / (state.questionDuration - Math.min(state.round * 0.8, 5)));
+  document.getElementById('timer-bar').style.width = (pct * 100) + '%';
+  document.getElementById('timer-bar').style.background = pct > 0.4 ? '#44ff44' : pct > 0.2 ? '#ffcc00' : '#ff3333';
+
+  if (state.questionTimer <= 0) {
+    state.combo = 0;
+    setCombo(0);
+    loseLife();
+    showFloat('TIME UP! ⏰', '#ff8800');
+    if (state.lives > 0) setTimeout(() => { if (state.phase === 'playing') nextQuestion(); }, 600);
+  }
+}
+
+function update(dt, t) {
+  if (state.phase !== 'playing') return;
+
+  if (state.shake > 0) state.shake -= dt * 60;
+  if (state.muzzleFlash > 0) state.muzzleFlash -= 1;
+
+  state.zombies.forEach(z => {
+    if (z.dead) { z.deathTimer -= dt * 2; return; }
+    z.y += z.speed;
+    z.wobble += dt * 2;
+    if (z.y > H - 110) {
+      if (!z.dead) {
+        if (z.isCorrect) {
+          loseLife();
+          showFloat('ZOMBIE BROKE THROUGH!', '#ff4444');
+          spawnParticles(z.x, z.y, '#ff2222', 20);
+        }
+        z.dead = true;
+        z.deathTimer = 0;
+      }
+    }
+  });
+
+  state.bullets.forEach(b => {
+    const dx = b.tx - b.x, dy = b.ty - b.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < b.speed) {
+      b.life = 0;
+    } else {
+      b.x += (dx / dist) * b.speed;
+      b.y += (dy / dist) * b.speed;
+    }
+  });
+
+  state.particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.2;
+    p.life -= p.decay;
+  });
+
+  state.zombies = state.zombies.filter(z => !(z.dead && z.deathTimer <= 0));
+  state.bullets = state.bullets.filter(b => b.life > 0);
+  state.particles = state.particles.filter(p => p.life > 0);
+
+  checkRoundEnd();
+  updateTimerBar(dt);
+}
+
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  const t = ts / 1000;
+
+  ctx.save();
+  if (state.shake > 0) {
+    ctx.translate(rand(-state.shake, state.shake), rand(-state.shake * 0.5, state.shake * 0.5));
+  }
+
+  drawBackground(t);
+  drawGround();
+
+  state.particles.forEach(p => drawParticle(p));
+  state.zombies.forEach(z => drawZombie(z, t));
+  state.bullets.forEach(b => drawBullet(b));
+  drawPlayer(t);
+
+  ctx.restore();
+  update(dt, t);
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(ts => { lastTime = ts; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>

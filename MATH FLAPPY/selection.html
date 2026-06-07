@@ -91,6 +91,20 @@
             transform: scale(0.95);
         }
 
+        .selection-button.deadmath-button {
+            width: clamp(260px, 28vw, 380px);
+            background: linear-gradient(135deg, #b10b0b 0%, #400000 100%);
+            color: #fff;
+            border: 2px solid #ff5555;
+            font-size: clamp(18px, 2vw, 26px);
+            letter-spacing: 1px;
+        }
+
+        .selection-button.deadmath-button:hover {
+            transform: scale(1.06);
+            background: linear-gradient(135deg, #ff3333 0%, #660000 100%);
+        }
+
         .back-button {
             position: absolute;
             top: clamp(10px, 2.5vh, 35px);
@@ -225,6 +239,7 @@
                     <img src="assets/multi.png" alt="Multiplication">
                 </button>
             </div>
+            <button class="selection-button deadmath-button" id="deadMathBtn" aria-label="Dead Math">DEAD MATH</button>
         </div>
     </div>
 
@@ -334,6 +349,7 @@
         const additionBtn = document.getElementById('additionBtn');
         const subtractionBtn = document.getElementById('subtractionBtn');
         const multiplicationBtn = document.getElementById('multiplicationBtn');
+        const deadMathBtn = document.getElementById('deadMathBtn');
 
         if (additionBtn) {
             addHoverEffect(additionBtn);
@@ -348,6 +364,15 @@
         if (multiplicationBtn) {
             addHoverEffect(multiplicationBtn);
             multiplicationBtn.addEventListener('click', () => navigateToGame('multiplication'));
+        }
+
+        if (deadMathBtn) {
+            addHoverEffect(deadMathBtn);
+            deadMathBtn.addEventListener('click', () => {
+                playClick();
+                fadeOverlay.style.opacity = '1';
+                setTimeout(() => { window.location.href = 'dead-math.html'; }, 580);
+            });
         }
     </script>
     <script>
